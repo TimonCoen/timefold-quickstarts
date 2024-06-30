@@ -24,6 +24,7 @@ public class Vehicle {
     private Location homeLocation;
 
     private LocalDateTime departureTime;
+    private LocalDateTime lastDepartureTime;
 
     @JsonIdentityReference(alwaysAsId = true)
     @PlanningListVariable
@@ -32,11 +33,20 @@ public class Vehicle {
     public Vehicle() {
     }
 
-    public Vehicle(String id, int capacity, Location homeLocation, LocalDateTime departureTime) {
+//    public Vehicle(String id, int capacity, Location homeLocation, LocalDateTime departureTime) {
+//        this.id = id;
+//        this.capacity = capacity;
+//        this.homeLocation = homeLocation;
+//        this.departureTime = departureTime;
+//        this.visits = new ArrayList<>();
+//    }
+
+    public Vehicle(String id, int capacity, Location homeLocation, LocalDateTime departureTime, LocalDateTime lastDepartureTime) {
         this.id = id;
         this.capacity = capacity;
         this.homeLocation = homeLocation;
         this.departureTime = departureTime;
+        this.lastDepartureTime = lastDepartureTime;
         this.visits = new ArrayList<>();
     }
 
@@ -66,6 +76,10 @@ public class Vehicle {
 
     public LocalDateTime getDepartureTime() {
         return departureTime;
+    }
+
+    public LocalDateTime getLastDepartureTime() {
+        return lastDepartureTime;
     }
 
     public List<Visit> getVisits() {
@@ -115,6 +129,15 @@ public class Vehicle {
 
         Visit lastVisit = visits.get(visits.size() - 1);
         return lastVisit.getDepartureTime().plusSeconds(lastVisit.getLocation().getDrivingTimeTo(homeLocation));
+    }
+
+    public LocalDateTime getEffectiveLastDepartureTime(){
+        if (visits.isEmpty()) {
+            return departureTime;
+        }
+
+        Visit lastVisit = visits.get(visits.size() - 1);
+        return lastVisit.getDepartureTime();
     }
 
     @Override

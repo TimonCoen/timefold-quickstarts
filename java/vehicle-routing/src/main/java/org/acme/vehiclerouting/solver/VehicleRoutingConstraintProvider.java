@@ -7,13 +7,17 @@ import ai.timefold.solver.core.api.score.stream.ConstraintProvider;
 
 import org.acme.vehiclerouting.domain.Visit;
 import org.acme.vehiclerouting.domain.Vehicle;
+import org.acme.vehiclerouting.solver.justifications.LastDepartureTimeJustification;
 import org.acme.vehiclerouting.solver.justifications.MinimizeTravelTimeJustification;
 import org.acme.vehiclerouting.solver.justifications.ServiceFinishedAfterMaxEndTimeJustification;
 import org.acme.vehiclerouting.solver.justifications.VehicleCapacityJustification;
 
+import java.time.Duration;
+
 public class VehicleRoutingConstraintProvider implements ConstraintProvider {
 
     public static final String VEHICLE_CAPACITY = "vehicleCapacity";
+    public static final String LAST_DEPARTURE_TIME = "lastDepartureTime";
     public static final String SERVICE_FINISHED_AFTER_MAX_END_TIME = "serviceFinishedAfterMaxEndTime";
     public static final String MINIMIZE_TRAVEL_TIME = "minimizeTravelTime";
 
@@ -21,6 +25,7 @@ public class VehicleRoutingConstraintProvider implements ConstraintProvider {
     public Constraint[] defineConstraints(ConstraintFactory factory) {
         return new Constraint[] {
                 vehicleCapacity(factory),
+                lastDepartureTime(factory),
                 serviceFinishedAfterMaxEndTime(factory),
                 minimizeTravelTime(factory)
         };
@@ -38,6 +43,16 @@ public class VehicleRoutingConstraintProvider implements ConstraintProvider {
                 .justifyWith((vehicle, score) -> new VehicleCapacityJustification(vehicle.getId(), vehicle.getTotalDemand(),
                         vehicle.getCapacity()))
                 .asConstraint(VEHICLE_CAPACITY);
+    }
+
+    protected Constraint lastDepartureTime(ConstraintFactory factory) {
+        return factory.forEach(Vehicle.class)
+                .filter(vehicle -> vehicle.getEffectiveLastDepartureTime().isAfter(vehicle.getLastDepartureTime()))
+                .penalizeLong(HardSoftLongScore.ONE_HARD,
+                        vehicle -> Duration.between(vehicle.getLastDepartureTime(),vehicle.getEffectiveLastDepartureTime()).toMinutes())
+                .justifyWith((vehicle, score) -> new LastDepartureTimeJustification(vehicle.getId(), Duration.between(vehicle.getLastDepartureTime(),
+                        vehicle.getEffectiveLastDepartureTime()).toMinutes()))
+                .asConstraint(LAST_DEPARTURE_TIME);
     }
 
     protected Constraint serviceFinishedAfterMaxEndTime(ConstraintFactory factory) {
